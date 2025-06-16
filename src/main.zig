@@ -1,14 +1,15 @@
 const std = @import("std");
-const shortener = @import("shortener.zig");
+const shortener = @import("shortener.zig").URLShortener;
+const server = @import("server.zig").URLShortenerServer;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var url_shortener = shortener.UrlShortener.init(allocator);
-    defer url_shortener.deinit();
+    var shrt = shortener.init(allocator);
+    defer shrt.deinit();
 
-    var server = shortener.UrlShortenerServer.init(allocator, &url_shortener);
-    try server.start(3000);
+    var srv = server.init(allocator, &shrt);
+    try srv.start(3000);
 }

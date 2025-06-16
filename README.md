@@ -1,8 +1,6 @@
 # shortify
 A lightweight URL shortener service built in Zig using the standard library HTTP server.
 
-Zig version: 0.14.1
-
 ## Features
 
 - [X] Shorten URLs with auto-generated Base62 codes
