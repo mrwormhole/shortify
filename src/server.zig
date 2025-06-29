@@ -33,19 +33,7 @@ pub const URLShortenerServer = struct {
         });
     }
 
-    fn sendRedirect(self: *Self, request: *http.Server.Request, location: []const u8) !void {
-        _ = self;
-        try request.respond("", .{
-            .status = .moved_permanently,
-            .extra_headers = &.{
-                .{ .name = "location", .value = location },
-                .{ .name = "access-control-allow-origin", .value = "*" },
-            },
-        });
-    }
-
-    fn sendTextResponse(self: *Self, request: *http.Server.Request, status: http.Status, text: []const u8) !void {
-        _ = self;
+    fn sendTextResponse(request: *http.Server.Request, status: http.Status, text: []const u8) !void {
         try request.respond(text, .{
             .status = status,
             .extra_headers = &.{
@@ -67,13 +55,13 @@ pub const URLShortenerServer = struct {
 
         // Handle CORS preflight
         if (method == .OPTIONS) {
-            try self.sendTextResponse(request, .ok, "");
+            try sendTextResponse(request, .ok, "");
             return;
         }
 
         // Route handling
         if (method == .GET and std.mem.eql(u8, target, "/")) {
-            try self.handleHealthCheck(request);
+            try sendTextResponse(request, .ok, "URL Shortener API");
         } else if (method == .POST and std.mem.eql(u8, target, "/shorten")) {
             try self.handleShortenRequest(request);
         } else if (method == .GET and std.mem.startsWith(u8, target, "/stats/")) {
@@ -88,10 +76,6 @@ pub const URLShortenerServer = struct {
             const error_response = ErrorResponse{ .error_message = "Not found" };
             try self.sendJsonResponse(request, .not_found, error_response);
         }
-    }
-
-    fn handleHealthCheck(self: *Self, request: *http.Server.Request) !void {
-        try self.sendTextResponse(request, .ok, "URL Shortener API");
     }
 
     pub const ShortenRequest = struct {
@@ -148,7 +132,13 @@ pub const URLShortenerServer = struct {
     fn handleRedirectRequest(self: *Self, request: *http.Server.Request, code: []const u8) !void {
         if (self.shortener.getUrl(code)) |entry| {
             self.shortener.incrementClick(code);
-            try self.sendRedirect(request, entry.original_url);
+            try request.respond("", .{
+                .status = .moved_permanently,
+                .extra_headers = &.{
+                    .{ .name = "location", .value = entry.original_url },
+                    .{ .name = "access-control-allow-origin", .value = "*" },
+                },
+            });
         } else {
             const error_response = ErrorResponse{ .error_message = "Short code not found" };
             try self.sendJsonResponse(request, .not_found, error_response);
@@ -174,7 +164,6 @@ pub const URLShortenerServer = struct {
     pub fn start(self: *Self, port: u16) !void {
         const address = std.net.Address.parseIp("127.0.0.1", port) catch unreachable;
 
-        // Try the socket-based approach for Zig 0.14.1
         const socket = try std.posix.socket(std.posix.AF.INET, std.posix.SOCK.STREAM, 0);
         defer std.posix.close(socket);
 
