@@ -1,4 +1,4 @@
-# shortify
+# zhortify
 A lightweight URL shortener service built in Zig using the standard library HTTP server.
 
 ## Features
@@ -18,7 +18,7 @@ A lightweight URL shortener service built in Zig using the standard library HTTP
 ### Installation
 
 ```bash
-  git clone https://github.com/mrwormhole/shortify.git
+  git clone https://github.com/mrwormhole/zhortify.git
   cd url-shortener
   zig run main.zig
 ```
